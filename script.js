@@ -94,7 +94,7 @@ async function showAuthModal() {
                 const { data, error } = await client.auth.signUp({ 
                     email: email, 
                     password: password,
-                    options: { emailRedirectTo: redirectUrl }
+                    options: { emailRedirectTo: window.location.href }
                 });
 
                 if (error) throw error;
