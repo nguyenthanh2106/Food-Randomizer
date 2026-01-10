@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Randomizer</title>
+    
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        #app-section { display: none; }
+        
+        .user-info {
+            position: absolute; top: 1.5rem; right: 1.5rem;
+            display: flex; gap: 10px; align-items: center; z-index: 10;
+        }
+        .user-email { font-size: 0.8rem; color: var(--text-color); font-weight: 600; }
+        .btn-logout { 
+            padding: 0.5rem; background: #ffe0e6; color: var(--first-color); 
+            border-radius: 50%; width: 40px; height: 40px; display: flex; 
+            align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;
+        }
+        .btn-logout:hover { background: var(--first-color); color: white; }
+
+        .btn-big-login {
+            width: 100%; padding: 1.2rem; font-size: 1.2rem;
+            background: var(--first-color); color: white;
+            border-radius: 1rem; border: none; cursor: pointer;
+            box-shadow: 0 10px 20px rgba(255, 117, 140, 0.4);
+            transition: 0.3s; font-family: 'Poppins', sans-serif; font-weight: 600;
+        }
+        .btn-big-login:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(255, 117, 140, 0.6); }
+    </style>
+</head>
+
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="container" id="login-section">
+        <h1>Welcome Back!</h1>
+        <p style="margin-bottom: 2rem; color: #666;">Đăng nhập để lưu lại lịch sử ăn uống của riêng bạn nhé.</p>
+        
+        <button class="btn-big-login" onclick="showAuthModal()">
+            <i class="ri-login-circle-line"></i> Đăng nhập / Đăng ký
+        </button>
+    </div>
+
+    <div class="container" id="app-section">
+        
+        <div class="user-info">
+            <span id="display-email" class="user-email">...</span>
+            <div class="btn-logout" onclick="handleLogout()" title="Đăng xuất">
+                <i class="ri-logout-box-r-line"></i>
+            </div>
+        </div>
+
+        <h1><i class="ri-compass-3-line"></i> What to eat?</h1>
+
+        <div class="input-group">
+            <label>Craving (Optional)</label>
+            <input id="wish" type="text" placeholder="Sushi, Coffee, View...">
+        </div>
+
+        <div class="input-group">
+            <label>Cooldown (Days)</label>
+            <input id="days" type="number" value="3">
+        </div>
+
+        <div class="grid-buttons">
+            <button class="btn-primary" onclick="findPlace('FOOD')">
+                <i class="ri-restaurant-2-line"></i> Food
+            </button>
+            <button class="btn-secondary" onclick="findPlace('COFFEE')">
+                <i class="ri-cup-line"></i> Coffee
+            </button>
+        </div>
+
+        <div id="result-card" class="result-card">
+            <div class="door door-left"></div> <div class="door door-right"></div>
+
+            <div class="result-content">
+                <img id="img" class="result-img" src="" alt="Food Img">
+                <h3 id="name" class="result-name">Place Name</h3>
+                <p id="desc" class="result-desc">Description...</p>
+                
+                <button class="btn-confirm" onclick="confirmSelection()">
+                    <i class="ri-check-line"></i> Confirm Selection
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <audio id="sound-win" src="https://www.soundjay.com/misc/sounds/magic-chime-01.mp3"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html>

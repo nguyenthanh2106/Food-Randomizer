@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Add New Item</title>
+    
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        /* Specific CSS for Admin Page */
+        textarea {
+            width: 100%;
+            background-color: var(--input-color);
+            color: var(--title-color);
+            border: 2px solid transparent;
+            padding: 1rem;
+            border-radius: 1rem;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            box-sizing: border-box;
+            resize: vertical;
+            min-height: 100px;
+            margin-top: 5px;
+        }
+        textarea:focus {
+            background-color: #fff;
+            border-color: var(--first-color);
+            box-shadow: 0 4px 15px rgba(255, 117, 140, 0.2);
+        }
+        select {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 2px solid transparent;
+            background-color: var(--input-color);
+            color: var(--title-color);
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            margin-top: 5px;
+            cursor: pointer;
+            appearance: none;
+        }
+        input[type="file"] {
+            background: white;
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .back-link {
+            display: block;
+            margin-bottom: 20px;
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover { color: var(--first-color); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="index.html" class="back-link"><i class="ri-arrow-left-line"></i> Back to Home</a>
+        
+        <h1><i class="ri-file-list-3-line"></i> Add New Item</h1>
+
+        <div class="input-group">
+            <label>Category (Type)</label>
+            <div class="radio-group">
+                <input type="radio" id="type-food" name="category" value="foods" checked>
+                <label for="type-food" class="radio-label">
+                    <i class="ri-restaurant-fill"></i> Food
+                </label>
+
+                <input type="radio" id="type-coffee" name="category" value="coffee">
+                <label for="type-coffee" class="radio-label">
+                    <i class="ri-cup-fill"></i> Coffee
+                </label>
+            </div>
+    </div>
+
+        <div class="input-group">
+            <label>Item Name / Place Name</label>
+            <input type="text" id="name" placeholder="e.g., Sushi, Starbucks...">
+        </div>
+
+        <div class="input-group">
+            <label>Description / Address</label>
+            <textarea id="desc" placeholder="e.g., Delicious, cheap, near central park..."></textarea>
+        </div>
+        
+        <div class="input-group">
+            <label>Select Image (Upload)</label>
+            <input type="file" id="imageFile" accept="image/*">
+        </div>
+
+        <button class="btn-primary" onclick="addNewItem()" style="width: 100%">
+            <i class="ri-save-fill"></i> Save Item
+        </button>
+        
+        <p id="status" style="margin-top: 15px; font-size: 0.9rem; color: var(--first-color);"></p>
+    </div>
+
+    <script>
+        // --- ⚠️ PASTE YOUR SUPABASE KEYS HERE ⚠️ ---
+        const SUPABASE_URL = 'https://dcswkznaallvcfvwaqrn.supabase.co'
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3drem5hYWxsdmNmdndhcXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NDExNzYsImV4cCI6MjA4MzUxNzE3Nn0.peCFDhEiIvRtP2W6Yr0OAwsrE-Uwm7dmS2sIUAQoA34'
+        
+        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+        async function addNewItem() {
+            // 1. Get data from Form
+            const type = document.querySelector('input[name="category"]:checked').value;
+            const name = document.getElementById('name').value;
+            const desc = document.getElementById('desc').value;
+            const fileInput = document.getElementById('imageFile');
+            const statusText = document.getElementById('status');
+            const btn = document.querySelector('.btn-primary');
+
+            // Simple validation
+            if (!name) { alert("Please enter a name!"); return; }
+            
+            // Loading effect
+            btn.innerHTML = "<i class='ri-loader-4-line'></i> Uploading...";
+            statusText.innerText = "Processing image...";
+
+            let imageUrl = null;
+
+            // 2. Handle Image Upload (If file selected)
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                // Generate random filename to avoid duplicates
+                const fileName = Date.now() + '-' + file.name.replace(/\s/g, ''); 
+
+                // Upload to 'images' Bucket
+                const { data, error } = await client
+                    .storage
+                    .from('images') // Ensure your bucket is named 'images'
+                    .upload(fileName, file)
+
+                if (error) {
+                    alert("Upload error: " + error.message);
+                    btn.innerHTML = "<i class='ri-save-3-line'></i> Save Item";
+                    return;
+                }
+
+                // Get Public URL
+                const { data: urlData } = client
+                    .storage
+                    .from('images')
+                    .getPublicUrl(fileName)
+                
+                imageUrl = urlData.publicUrl;
+            }
+
+            // 3. Save to Database
+            statusText.innerText = "Saving to database...";
+            
+            const { error: dbError } = await client
+                .from(type) // Automatically selects 'foods' or 'coffee' table
+                .insert({
+                    name: name,
+                    description: desc,
+                    image_url: imageUrl, // null if no image uploaded
+                })
+
+            // 4. Finish
+            if (dbError) {
+                // Popup Lỗi (Error)
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Upload Failed',
+                    text: dbError.message,
+                    confirmButtonColor: '#ff758c'
+                });
+            } else {
+                // Popup Thành công (Success) - Tiếng Anh
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Item Added Successfully! 🎉',
+                    text: 'Your new item has been saved to the database.',
+                    confirmButtonColor: '#ff758c',
+                    timer: 2000, // Tự tắt sau 2 giây
+                    showConfirmButton: false
+                });
+
+                // Reset form (Xóa trắng các ô nhập)
+                document.getElementById('name').value = '';
+                document.getElementById('desc').value = '';
+                fileInput.value = '';
+                statusText.innerText = "";
+                
+                // Reset lại 2 nút chọn, mặc định chọn về Food
+                document.getElementById('type-food').checked = true;
+            }
+            btn.innerHTML = "<i class='ri-save-3-line'></i> Save Item";
+        }
+    </script>
+</body>
+</html>
