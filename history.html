@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Food History</title>
+    
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        /* CSS riêng cho bảng lịch sử */
+        .history-container {
+            max-width: 800px;
+            margin: 50px auto;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fff;
+            padding: 1rem;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-left: 5px solid #ff758c;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .history-item:hover { transform: translateX(5px); }
+        .item-info h4 { margin: 0; color: #333; }
+        .item-info p { margin: 0; font-size: 0.85rem; color: #777; }
+        .btn-delete {
+            color: #ff4757;
+            cursor: pointer;
+            padding: 5px 10px;
+            font-size: 1.2rem;
+            transition: 0.2s;
+        }
+        .btn-delete:hover { transform: scale(1.2); }
+        .back-btn {
+            display: inline-block; margin-bottom: 20px;
+            color: #555; text-decoration: none; font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="history-container">
+        <a href="index.html" class="back-btn"><i class="ri-arrow-left-line"></i> Back to Home</a>
+        
+        <h2 style="text-align: center; color: #ff758c;">My Dining History 📖</h2>
+        
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+            <button onclick="loadHistory('FOOD')" class="btn-primary" style="padding: 0.5rem 1.5rem; font-size: 0.9rem;">Food</button>
+            <button onclick="loadHistory('COFFEE')" class="btn-secondary" style="padding: 0.5rem 1.5rem; font-size: 0.9rem;">Coffee</button>
+        </div>
+
+        <div id="history-list">
+            <p style="text-align: center;">Loading...</p>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://dcswkznaallvcfvwaqrn.supabase.co'
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3drem5hYWxsdmNmdndhcXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NDExNzYsImV4cCI6MjA4MzUxNzE3Nn0.peCFDhEiIvRtP2W6Yr0OAwsrE-Uwm7dmS2sIUAQoA34'
+        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+        // 1. Kiểm tra đăng nhập
+        async function checkAuth() {
+            const { data: { user } } = await client.auth.getUser();
+            if (!user) {
+                window.location.href = "index.html"; // Đá về trang chủ nếu chưa đăng nhập
+            } else {
+                loadHistory('FOOD'); // Mặc định load đồ ăn
+            }
+        }
+        checkAuth();
+
+        // 2. Hàm lấy dữ liệu
+        async function loadHistory(type) {
+            const listDiv = document.getElementById('history-list');
+            listDiv.innerHTML = '<p style="text-align: center;">Loading data...</p>';
+
+            let tableName = type === 'FOOD' ? 'food_history' : 'coffee_history';
+            let refTable = type === 'FOOD' ? 'smart_food_options' : 'smart_coffee_options';
+            let foreignKey = type === 'FOOD' ? 'food_id' : 'coffee_id';
+
+            // Join bảng để lấy tên món ăn
+            // Lưu ý: Supabase JS cú pháp select relation hơi khác xíu
+            const { data, error } = await client
+                .from(tableName)
+                .select(`
+                    id, 
+                    created_at, 
+                    ${refTable} (name)
+                `)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                listDiv.innerHTML = `<p style="color: red; text-align: center;">Error: ${error.message}</p>`;
+                return;
+            }
+
+            if (data.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; color: #888;">No history yet. Go eat something! 😋</p>';
+                return;
+            }
+
+            // Render ra HTML
+            let html = '';
+            data.forEach(item => {
+                // Lấy tên món từ object lồng nhau
+                let foodName = item[refTable] ? item[refTable].name : 'Unknown Item';
+                let date = new Date(item.created_at).toLocaleDateString('vi-VN');
+
+                html += `
+                    <div class="history-item">
+                        <div class="item-info">
+                            <h4>${foodName}</h4>
+                            <p><i class="ri-calendar-line"></i> ${date}</p>
+                        </div>
+                        <div class="btn-delete" onclick="deleteItem('${item.id}', '${tableName}')">
+                            <i class="ri-delete-bin-line"></i>
+                        </div>
+                    </div>
+                `;
+            });
+            listDiv.innerHTML = html;
+        }
+
+        // 3. Hàm xóa
+        async function deleteItem(id, table) {
+            Swal.fire({
+                title: 'Delete this?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const { error } = await client.from(table).delete().eq('id', id);
+                    if (!error) {
+                        Swal.fire('Deleted!', 'Your record has been deleted.', 'success');
+                        // Load lại danh sách hiện tại
+                        loadHistory(table === 'food_history' ? 'FOOD' : 'COFFEE');
+                    }
+                }
+            })
+        }
+    </script>
+</body>
+</html>
