@@ -24,6 +24,7 @@
             padding: 0.5rem; background: #ffe0e6; color: var(--first-color); 
             border-radius: 50%; width: 40px; height: 40px; display: flex; 
             align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;
+            text-decoration: none;
         }
         .btn-logout:hover { background: var(--first-color); color: white; }
 
@@ -43,7 +44,7 @@
     <div class="blob blob-2"></div>
 
     <div class="container" id="login-section">
-        <h1>Welcome Back!</h1>
+        <h1>Welcome Back! 👋</h1>
         <p style="margin-bottom: 2rem; color: #666;">Đăng nhập để lưu lại lịch sử ăn uống của riêng bạn nhé.</p>
         
         <button class="btn-big-login" onclick="showAuthModal()">
@@ -55,8 +56,12 @@
         
         <div class="user-info">
             <span id="display-email" class="user-email">...</span>
+            
+            <a href="add.html" class="btn-logout" title="Thêm quán">
+                <i class="ri-add-line"></i>
+            </a>
 
-            <a href="history.html" class="btn-logout" style="text-decoration: none; margin-right: 5px;" title="Lịch sử">
+            <a href="history.html" class="btn-logout" title="Lịch sử">
                 <i class="ri-history-line"></i>
             </a>
 
@@ -87,7 +92,8 @@
         </div>
 
         <div id="result-card" class="result-card">
-            <div class="door door-left"></div> <div class="door door-right"></div>
+            <div class="door door-left"></div>
+            <div class="door door-right"></div>
 
             <div class="result-content">
                 <img id="img" class="result-img" src="" alt="Food Img">

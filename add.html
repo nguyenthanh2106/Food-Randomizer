@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Place</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        /* 2. ÁP DỤNG FONT MỚI */
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .form-group { text-align: left; margin-bottom: 20px; }
+        
+        .form-group label { 
+            display: block; 
+            font-weight: 600; 
+            color: #444; 
+            margin-bottom: 8px; 
+            font-size: 0.95rem;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; 
+            padding: 12px 15px; 
+            border-radius: 12px;
+            border: 2px solid #ffe0e6; 
+            outline: none; 
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            transition: 0.3s;
+            background: #fffafb;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus { 
+            border-color: #ff758c; 
+            background: #fff;
+            box-shadow: 0 5px 15px rgba(255, 117, 140, 0.1);
+        }
+        
+        .preview-img { 
+            width: 100%; height: 180px; 
+            object-fit: cover; 
+            border-radius: 12px; 
+            margin-top: 15px; 
+            display: none; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .home-btn {
+            position: absolute; 
+            left: 20px; top: 20px; 
+            text-decoration: none; 
+            font-weight: 600; 
+            color: #555; 
+            z-index: 9999;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 18px;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .home-btn:hover {
+            transform: translateY(-2px);
+            color: #ff758c;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+    
+    <a href="index.html" class="home-btn">
+        <i class="ri-home-heart-fill"></i> Home
+    </a>
+
+    <div class="container">
+        <h2 style="color: #ff758c; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <i class="ri-map-pin-add-fill"></i> Add Place
+        </h2>
+        <p style="margin-bottom: 25px; color: #777; font-size: 0.9rem;">Tìm được quán ngon? Lưu lại ngay!</p>
+
+        <div class="form-group">
+            <label>Category</label>
+            <select id="type">
+                <option value="FOOD">Food (Đồ ăn)</option>
+                <option value="COFFEE">Coffee (Cafe)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" id="name" placeholder="Ví dụ: Phở Thìn, Katinat...">
+        </div>
+
+        <div class="form-group">
+            <label>Image URL</label>
+            <input type="text" id="image_url" placeholder="https://..." onchange="previewImage()">
+            <img id="img-preview" class="preview-img" src="">
+        </div>
+
+        <div class="form-group">
+            <label>Description (Optional)</label>
+            <textarea id="description" rows="3" placeholder="Ghi chú: Món này ngon, view đẹp..."></textarea>
+        </div>
+
+        <button class="btn-primary" onclick="addNewPlace()" style="font-family: 'Poppins', sans-serif; font-weight: 600;">
+            <i class="ri-save-3-line"></i> Save to Database
+        </button>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://dcswkznaallvcfvwaqrn.supabase.co'
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3drem5hYWxsdmNmdndhcXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NDExNzYsImV4cCI6MjA4MzUxNzE3Nn0.peCFDhEiIvRtP2W6Yr0OAwsrE-Uwm7dmS2sIUAQoA34'
+        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+        async function checkAuth() {
+            const { data: { user } } = await client.auth.getUser();
+            if (!user) {
+                Swal.fire('Stop!', 'Bạn phải đăng nhập mới thêm quán được.', 'error')
+                    .then(() => window.location.href = "index.html");
+            }
+        }
+        checkAuth();
+
+        function previewImage() {
+            const url = document.getElementById('image_url').value;
+            const img = document.getElementById('img-preview');
+            if(url) {
+                img.src = url;
+                img.style.display = 'block';
+            }
+        }
+
+        async function addNewPlace() {
+            const type = document.getElementById('type').value;
+            const name = document.getElementById('name').value;
+            const image_url = document.getElementById('image_url').value;
+            const description = document.getElementById('description').value;
+
+            if (!name) {
+                Swal.fire('Thiếu tên!', 'Vui lòng nhập tên quán.', 'warning');
+                return;
+            }
+
+            const tableName = (type === 'FOOD') ? 'foods' : 'coffee';
+
+            Swal.showLoading();
+
+            const { error } = await client
+                .from(tableName)
+                .insert({ 
+                    name: name, 
+                    image_url: image_url, 
+                    description: description 
+                });
+
+            if (error) {
+                Swal.fire('Lỗi', error.message, 'error');
+            } else {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đã lưu!',
+                    text: 'Quán đã vào danh sách quay số.',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+                
+                // Reset form
+                document.getElementById('name').value = '';
+                document.getElementById('image_url').value = '';
+                document.getElementById('description').value = '';
+                document.getElementById('img-preview').style.display = 'none';
+                document.getElementById('img-preview').src = '';
+            }
+        }
+    </script>
+</body>
+</html>
