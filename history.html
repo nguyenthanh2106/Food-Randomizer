@@ -12,7 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        /* CSS riêng cho bảng lịch sử */
         .history-container {
             max-width: 800px;
             margin: 50px auto;
@@ -72,52 +71,53 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjc3drem5hYWxsdmNmdndhcXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NDExNzYsImV4cCI6MjA4MzUxNzE3Nn0.peCFDhEiIvRtP2W6Yr0OAwsrE-Uwm7dmS2sIUAQoA34'
         const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-        // 1. Kiểm tra đăng nhập
         async function checkAuth() {
             const { data: { user } } = await client.auth.getUser();
             if (!user) {
-                window.location.href = "index.html"; // Đá về trang chủ nếu chưa đăng nhập
+                window.location.href = "index.html"; 
             } else {
-                loadHistory('FOOD'); // Mặc định load đồ ăn
+                loadHistory('FOOD');
             }
         }
         checkAuth();
 
-        // 2. Hàm lấy dữ liệu
         async function loadHistory(type) {
             const listDiv = document.getElementById('history-list');
             listDiv.innerHTML = '<p style="text-align: center;">Loading data...</p>';
 
-            let tableName = type === 'FOOD' ? 'food_history' : 'coffee_history';
-            let refTable = type === 'FOOD' ? 'smart_food_options' : 'smart_coffee_options';
-            let foreignKey = type === 'FOOD' ? 'food_id' : 'coffee_id';
 
-            // Join bảng để lấy tên món ăn
-            // Lưu ý: Supabase JS cú pháp select relation hơi khác xíu
+            let historyTable = type === 'FOOD' ? 'food_history' : 'coffee_history';
+
+            let relationQuery = type === 'FOOD' 
+                                ? 'food!my_link_food'
+                                : 'coffee!my_link_coffee'; 
+
+
             const { data, error } = await client
-                .from(tableName)
+                .from(historyTable)
                 .select(`
                     id, 
                     created_at, 
-                    ${refTable} (name)
+                    ${relationQuery} (name)
                 `)
                 .order('created_at', { ascending: false });
 
             if (error) {
+                console.error(error);
                 listDiv.innerHTML = `<p style="color: red; text-align: center;">Error: ${error.message}</p>`;
                 return;
             }
 
-            if (data.length === 0) {
+            if (!data || data.length === 0) {
                 listDiv.innerHTML = '<p style="text-align: center; color: #888;">No history yet. Go eat something! 😋</p>';
                 return;
             }
 
-            // Render ra HTML
             let html = '';
             data.forEach(item => {
-                // Lấy tên món từ object lồng nhau
-                let foodName = item[refTable] ? item[refTable].name : 'Unknown Item';
+                let refData = type === 'FOOD' ? item.food : item.coffee;
+                let foodName = refData ? refData.name : 'Unknown Item (Deleted?)';
+                
                 let date = new Date(item.created_at).toLocaleDateString('vi-VN');
 
                 html += `
@@ -126,7 +126,7 @@
                             <h4>${foodName}</h4>
                             <p><i class="ri-calendar-line"></i> ${date}</p>
                         </div>
-                        <div class="btn-delete" onclick="deleteItem('${item.id}', '${tableName}')">
+                        <div class="btn-delete" onclick="deleteItem('${item.id}', '${historyTable}')">
                             <i class="ri-delete-bin-line"></i>
                         </div>
                     </div>
@@ -135,7 +135,6 @@
             listDiv.innerHTML = html;
         }
 
-        // 3. Hàm xóa
         async function deleteItem(id, table) {
             Swal.fire({
                 title: 'Delete this?',
@@ -149,7 +148,6 @@
                     const { error } = await client.from(table).delete().eq('id', id);
                     if (!error) {
                         Swal.fire('Deleted!', 'Your record has been deleted.', 'success');
-                        // Load lại danh sách hiện tại
                         loadHistory(table === 'food_history' ? 'FOOD' : 'COFFEE');
                     }
                 }
